@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .header {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header .button-container {
+            position: absolute;
+            top: 50%;
+            right: 15px;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header .button-container button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-bottom: 10px;
+            text-align: center;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .header .button-container button:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0px 6px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            width: 50%;
+            text-align: center;
+        }
+
+        .modal-content textarea {
+            width: 100%;
+            height: 150px;
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            resize: none;
+        }
+
+        .modal-content button {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 15px;
+            margin-top: 15px;
+            cursor: pointer;
+        }
+
+        .modal-content button:hover {
+            background-color: #c0392b;
+        }
+
+        .content {
+            padding: 20px;
+            flex-grow: 1;
+            overflow-y: auto;
+            background-color: #ecf0f1;
+        }
+
+        .table-container {
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        table th, table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        table th {
+            background-color: #f2f2f2;
+        }
+
+        .chart-container {
+            margin-top: 40px;
+        }
+
+        canvas {
+            background: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .back-button {
+            text-decoration: none;
+            color: #ecf0f1;
+            background-color: #2c3e50;
+            padding: 10px 15px;
+            border-radius: 5px;
+            display: inline-block;
+            margin-top: 20px;
+        }
+
+        .back-button:hover {
+            background-color: #34495e;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Reports</h1>
+        <a href="dashboard.html" class="back-button">&larr; Back to Dashboard</a>
+        <div class="button-container">
+            <button id="generate-report">Generate Report</button>
+            <a href="reports_all.html" class="back-button">All Reports</a>
+        </div>
+    </div>
+
+    <div class="modal" id="reportModal">
+        <div class="modal-content">
+            <h2>Write Your Report</h2>
+            <textarea id="report-text" placeholder="Enter your report details here..."></textarea>
+            <button id="saveReport">Save</button>
+            <button id="closeModal">Close</button>
+        </div>
+    </div>
+
+    <div class="content">
+        <h2>Monthly Data Overview</h2>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th>Total Revenue</th>
+                        <th>Total Visitors</th>
+                    </tr>
+                </thead>
+                <tbody id="report-table-body">
+                    <!-- Dinamik olarak doldurulacak -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="reportChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('generate-report').addEventListener('click', () => {
+            document.getElementById('reportModal').style.display = 'flex';
+        });
+
+        document.getElementById('closeModal').addEventListener('click', () => {
+            document.getElementById('reportModal').style.display = 'none';
+        });
+
+        document.getElementById('saveReport').addEventListener('click', () => {
+            const reportContent = document.getElementById('report-text').value.trim();
+
+            if (reportContent === "") {
+                alert("Report content cannot be empty.");
+                return;
+            }
+
+            fetch('/api/admin-reports', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ content: reportContent }),
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.message) {
+                        alert('Report saved successfully!');
+                        document.getElementById('report-text').value = ''; // Clear the text area
+                        document.getElementById('reportModal').style.display = 'none';
+                    } else {
+                        alert('Failed to save report: ' + (data.error || 'Unknown error'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving report:', error);
+                    alert('An error occurred while saving the report.');
+                });
+        });
+
+        // API'den verileri çek
+        fetch('/api/reports')
+            .then(response => response.json())
+            .then(data => {
+                const tableBody = document.getElementById('report-table-body');
+                const labels = [];
+                const revenues = [];
+                const visitors = [];
+                let totalRevenue = 0;
+                let totalVisitors = 0;
+
+                const monthOrder = [
+                    'January', 'February', 'March', 'April', 'May', 'June',
+                    'July', 'August', 'September', 'October', 'November', 'December'
+                ];
+
+                // Aylara göre sıralama yap
+                data.sort((a, b) => monthOrder.indexOf(a.month) - monthOrder.indexOf(b.month));
+
+                data.forEach(report => {
+                    // Yıllık toplam "Yearly Total" verisini ayır
+                    if (report.month === "Yearly Total") {
+                        totalRevenue = parseFloat(report.total_revenue);
+                        totalVisitors = parseInt(report.total_visitors, 10);
+                        return; // Yıllık toplam verisini grafiğe ekleme
+                    }
+
+                    // Tablo satırlarını oluştur
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${report.month}</td>
+                        <td>$${parseFloat(report.total_revenue).toLocaleString()}</td>
+                        <td>${report.total_visitors.toLocaleString()}</td>
+                    `;
+                    tableBody.appendChild(row);
+
+                    // Grafik için verileri ekle
+                    labels.push(report.month);
+                    revenues.push(report.total_revenue);
+                    visitors.push(report.total_visitors);
+                });
+
+                // Yıllık toplam satırını ekle
+                const totalRow = document.createElement('tr');
+                totalRow.innerHTML = `
+                    <td><strong>Yearly Total</strong></td>
+                    <td><strong>$${totalRevenue.toLocaleString()}</strong></td>
+                    <td><strong>${totalVisitors.toLocaleString()}</strong></td>
+                `;
+                tableBody.appendChild(totalRow);
+
+                // Grafik oluştur
+                const ctx = document.getElementById('reportChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Revenue',
+                                data: revenues,
+                                borderColor: 'rgba(54, 162, 235, 1)',
+                                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                                fill: true,
+                                tension: 0.4,
+                            },
+                            {
+                                label: 'Visitors',
+                                data: visitors,
+                                borderColor: 'rgba(255, 99, 132, 1)',
+                                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                                fill: true,
+                                tension: 0.4,
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            })
+            .catch(err => console.error('Error fetching data:', err));
+    </script>
+</body>
+</html>

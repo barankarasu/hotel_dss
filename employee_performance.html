@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Performance</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        header {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            text-align: center;
+        }
+
+        header a {
+            color: #ecf0f1;
+            text-decoration: none;
+            font-size: 14px;
+            margin-right: 20px;
+        }
+
+        header a:hover {
+            text-decoration: underline;
+        }
+
+        .content {
+            flex-grow: 1;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #2c3e50;
+        }
+
+        .table-container {
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #2c3e50;
+            color: white;
+        }
+
+        .chart-container {
+            margin-top: 40px;
+        }
+
+        canvas {
+            margin-top: 20px;
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h2>Employee Performance</h2>
+        <a href="dashboard.html">&larr; Back to Performance Data</a>
+        <a href="dashboard.html">&larr; Back to Dashboard</a>
+    </header>
+
+    <div class="content">
+        <h1>Employee Performance Overview</h1>
+
+        <!-- Tablo -->
+        <div class="table-container">
+            <h3>Employee List</h3>
+            <table id="employee-table">
+                <thead>
+                    <tr>
+                        <th>Employee Name</th>
+                        <th>Hotel Name</th>
+                        <th>Performance Score</th>
+                        <th>Last Evaluation Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Dinamik olarak doldurulacak -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Grafik -->
+        <div class="chart-container">
+            <h3>Performance Chart</h3>
+            <canvas id="employeePerformanceChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const employeeTableBody = document.querySelector("#employee-table tbody");
+
+        // API'den veri çek
+        fetch("http://localhost:3000/api/employees")
+            .then(response => response.json())
+            .then(data => {
+                if (Array.isArray(data)) {
+                    const labels = [];
+                    const scores = [];
+
+                    data.forEach(employee => {
+                        labels.push(employee.name);
+                        scores.push(employee.performance_score);
+
+                        const row = document.createElement("tr");
+                        row.innerHTML = `
+                            <td>${employee.name}</td>
+                            <td>${employee.hotel_name || "N/A"}</td>
+                            <td>${employee.performance_score}</td>
+                            <td>${new Date(employee.last_evaluation_date).toLocaleDateString()}</td>
+                        `;
+                        employeeTableBody.appendChild(row);
+                    });
+
+                    // Grafik çizimi
+                    const ctx = document.getElementById('employeePerformanceChart').getContext('2d');
+                    new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Performance Score',
+                                data: scores,
+                                backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                                borderColor: 'rgba(75, 192, 192, 1)',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            scales: {
+                                y: {
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+                } else {
+                    console.error("Error fetching data");
+                }
+            })
+            .catch(error => {
+                console.error('Employee performance data fetch error:', error);
+            });
+    </script>
+</body>
+</html>

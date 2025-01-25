@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hotel Performance</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        header {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            text-align: center;
+        }
+
+        header a {
+            color: #ecf0f1;
+            text-decoration: none;
+            font-size: 14px;
+            margin-right: 20px;
+        }
+
+        header a:hover {
+            text-decoration: underline;
+        }
+
+        .content {
+            flex-grow: 1;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #2c3e50;
+        }
+
+        .selected-city {
+            font-size: 18px;
+            color: #2980b9;
+            margin-bottom: 20px;
+        }
+
+        .table-container {
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #2c3e50;
+            color: white;
+        }
+
+        .chart-container {
+            margin-top: 40px;
+        }
+
+        canvas {
+            margin-top: 20px;
+            max-width: 100%;
+            height: auto;
+        }
+
+        .map-container {
+            height: 400px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h2>Hotel Performance</h2>
+        <a href="dashboard.html">&larr; Back to Performance Data</a>
+        <a href="dashboard.html">&larr; Back to Dashboard</a>
+    </header>
+
+    <div class="content">
+        <h1>Hotel Performance Data</h1>
+        <p id="selected-city" class="selected-city"></p>
+
+        <!-- Tablo -->
+        <div class="table-container">
+            <h3>Hotel List</h3>
+            <table id="hotel-table">
+                <thead>
+                    <tr>
+                        <th>Hotel Name</th>
+                        <th>Revenue</th>
+                        <th>Rating</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Dinamik olarak doldurulacak -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Harita -->
+        <div class="map-container" id="map"></div>
+
+        <!-- Grafik -->
+        <div class="chart-container">
+            <h3>Revenue Chart</h3>
+            <canvas id="hotelPerformanceChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const selectedCityElement = document.getElementById('selected-city');
+        const hotelTableBody = document.querySelector("#hotel-table tbody");
+        const selectedCity = localStorage.getItem('selectedCity');
+
+        if (selectedCity) {
+            selectedCityElement.textContent = `Selected City: ${selectedCity}`;
+
+            // API'den veri çek
+            fetch(`http://localhost:3000/api/hotels-own?city=${encodeURIComponent(selectedCity)}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error("Failed to fetch hotel performance data.");
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (Array.isArray(data) && data.length > 0) {
+                        // Tabloyu doldur
+                        data.forEach(hotel => {
+                            const row = document.createElement("tr");
+                            row.innerHTML = `
+                                <td>${hotel.name}</td>
+                                <td>${parseFloat(hotel.revenue).toLocaleString()} USD</td>
+                                <td>${hotel.rating}</td>
+                            `;
+                            hotelTableBody.appendChild(row);
+                        });
+
+                        // Grafik için veriler
+                        const labels = data.map(hotel => hotel.name);
+                        const revenues = data.map(hotel => parseFloat(hotel.revenue));
+
+                        // Grafik çizimi
+                        const ctx = document.getElementById('hotelPerformanceChart').getContext('2d');
+                        new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: labels,
+                                datasets: [{
+                                    label: 'Revenue (USD)',
+                                    data: revenues,
+                                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                                    borderColor: 'rgba(54, 162, 235, 1)',
+                                    borderWidth: 1
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                scales: {
+                                    y: {
+                                        beginAtZero: true
+                                    }
+                                }
+                            }
+                        });
+
+                        // Haritayı güncelle
+                        const map = L.map('map').setView([37.75, 27.5], 10); // Aydın koordinatları
+
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            attribution: '© OpenStreetMap contributors'
+                        }).addTo(map);
+
+                        data.forEach(hotel => {
+                            const marker = L.marker([hotel.latitude, hotel.longitude]).addTo(map);
+                            marker.bindPopup(`<b>${hotel.name}</b><br>Revenue: ${hotel.revenue.toLocaleString()} USD<br>Rating: ${hotel.rating}`);
+                        });
+                    } else {
+                        selectedCityElement.textContent = "No data available for the selected city.";
+                    }
+                })
+                .catch(error => {
+                    console.error('Hotel performance data fetch error:', error);
+                    selectedCityElement.textContent = "Error fetching data. Please try again.";
+                });
+        } else {
+            selectedCityElement.textContent = "No city selected. Please select a city from the map.";
+        }
+    </script>
+</body>
+</html>

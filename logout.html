@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logout</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #ecf0f1;
+        }
+
+        .logout-container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            width: 300px;
+        }
+
+        .logout-container h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .logout-container button {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            transition: background-color 0.3s;
+        }
+
+        .logout-container button:hover {
+            background-color: #2980b9;
+        }
+
+        .logout-container a {
+            text-decoration: none;
+            color: #2c3e50;
+            display: inline-block;
+            margin-top: 20px;
+        }
+
+        .logout-container a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="logout-container">
+        <h1>Are you sure you want to logout?</h1>
+        <button onclick="logout()">Logout</button>
+        <a href="dashboard.html">Cancel</a>
+    </div>
+
+    <script>
+        function logout() {
+            alert("You have been logged out.");
+            // Login sayfasına yönlendirme
+            window.location.href = "login.html";
+        }
+    </script>
+</body>
+</html>
